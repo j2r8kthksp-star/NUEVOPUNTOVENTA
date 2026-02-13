@@ -1,0 +1,693 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>¡Se te Antoja! 😋</title>
+    <style>
+        :root {
+            --primary: #FF8C00; /* Naranja antojable */
+            --secondary: #FFD700; /* Amarillo queso/pan */
+            --accent: #D32F2F; /* Rojo salsa/carne */
+            --dark: #333;
+            --light: #f4f4f4;
+            --green: #2ecc71;
+            --blue: #3498db;
+        }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--light); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* HEADER */
+        header { background: var(--primary); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); height: 60px; }
+        .logo { font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        .menu-btn { background: white; color: var(--primary); border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+
+        /* LAYOUT PRINCIPAL */
+        .main-container { display: flex; flex: 1; height: calc(100% - 60px); }
+        
+        /* IZQUIERDA - PRODUCTOS */
+        .products-area { flex: 2; padding: 10px; overflow-y: auto; background: #fff5e6; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); grid-auto-rows: 140px; gap: 10px; align-content: start; }
+        
+        .product-card { background: white; border-radius: 15px; padding: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.1s; border: 2px solid transparent; }
+        .product-card:active { transform: scale(0.95); border-color: var(--primary); }
+        .prod-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; color: var(--dark); }
+        .prod-price { color: var(--accent); font-weight: bold; font-size: 1.2rem; }
+
+        /* DERECHA - CARRITO/DETALLE */
+        .cart-area { flex: 1; background: white; display: flex; flex-direction: column; border-left: 1px solid #ddd; padding: 10px; min-width: 320px; }
+        
+        .cart-list { flex: 1; overflow-y: auto; margin-bottom: 10px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; }
+        .del-btn { color: red; background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0 10px; }
+        
+        .totals-area { background: var(--light); padding: 15px; border-radius: 10px; }
+        .total-row { display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        
+        .payment-input { width: 100%; padding: 15px; font-size: 1.5rem; text-align: center; border: 2px solid #ddd; border-radius: 10px; margin-bottom: 10px; }
+        .change-display { text-align: center; font-size: 1.2rem; color: var(--dark); margin-bottom: 10px; font-weight: bold; }
+        
+        .action-btn { width: 100%; padding: 15px; border: none; border-radius: 10px; color: white; font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
+        .btn-pay { background: var(--green); opacity: 0.5; pointer-events: none; }
+        .btn-pay.active { opacity: 1; pointer-events: auto; }
+        .btn-credit { background: var(--blue); }
+
+        /* MODALES (Pantallas completas para secciones) */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; flex-direction: column; }
+        .modal-header { background: var(--dark); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-content { padding: 20px; overflow-y: auto; flex: 1; }
+        
+        /* NAVEGACIÓN MENU */
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 20px; }
+        .menu-option { background: var(--primary); color: white; padding: 30px; border-radius: 15px; font-size: 1.5rem; font-weight: bold; text-align: center; border: none; cursor: pointer; }
+
+        /* ESTILOS ESPECÍFICOS SECCIONES */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 5px; }
+        
+        /* Tablas */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f0f0f0; }
+
+        /* Split Screen para Gastos */
+        .split-view { display: flex; height: 100%; gap: 20px; }
+        .split-left, .split-right { flex: 1; overflow-y: auto; }
+
+        /* Gráficas CSS simples */
+        .chart-container { height: 200px; display: flex; align-items: flex-end; justify-content: space-around; margin-top: 20px; background: #fff; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        .bar-group { display: flex; flex-direction: column; align-items: center; width: 30%; }
+        .bar { width: 100%; transition: height 0.5s; display: flex; align-items: flex-end; justify-content: center; color: white; font-weight: bold; font-size: 0.8rem; border-radius: 5px 5px 0 0; }
+        .bar-green { background: var(--green); } /* Flat/Avg */
+        .bar-blue { background: var(--blue); } /* Vendio mas */
+        .bar-red { background: var(--accent); } /* Vendio menos */
+        .bar-net { background: transparent; width: 10px; } /* Solo espacio */
+
+        .net-indicator { font-size: 2rem; margin-top: 10px; text-align: center; }
+        .arrow-up { color: var(--green); }
+        .arrow-down { color: var(--accent); }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">¡Se te Antoja! 😋</div>
+    <button class="menu-btn" onclick="openMenu()">MENÚ ☰</button>
+</header>
+
+<div class="main-container">
+    <div class="products-area" id="productsGrid">
+        </div>
+
+    <div class="cart-area">
+        <h3>Detalle de Venta</h3>
+        <div class="cart-list" id="cartList">
+            </div>
+
+        <div class="totals-area">
+            <div class="total-row">
+                <span>Total:</span>
+                <span id="totalAmount">Q0.00</span>
+            </div>
+            
+            <input type="number" id="payInput" class="payment-input" placeholder="¿Con cuánto paga?" oninput="calcChange()">
+            <div class="change-display" id="changeDisplay">Cambio: Q0.00</div>
+            
+            <button id="btnPay" class="action-btn btn-pay" onclick="processPayment('cash')">COBRAR 💵</button>
+            <button class="action-btn btn-credit" onclick="processPayment('credit')">FIADO 📝</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalMenu" class="modal">
+    <div class="modal-header">
+        <span>Menú Principal</span>
+        <button class="menu-btn" onclick="closeModal('modalMenu')">Cerrar X</button>
+    </div>
+    <div class="modal-content menu-grid">
+        <button class="menu-option" style="background:#e67e22" onclick="openSection('modalGastos')">GASTOS 💸</button>
+        <button class="menu-option" style="background:#3498db" onclick="openSection('modalFiado')">FIADO 📒</button>
+        <button class="menu-option" style="background:#9b59b6" onclick="openSection('modalHistorial')">HISTORIAL 📊</button>
+        <button class="menu-option" style="background:#27ae60" onclick="openSection('modalInventario')">INVENTARIO / RECETARIO 📦</button>
+    </div>
+</div>
+
+<div id="modalInventario" class="modal">
+    <div class="modal-header">
+        <span>Inventario y Recetario</span>
+        <button class="menu-btn" onclick="closeModal('modalInventario')">Volver</button>
+    </div>
+    <div class="modal-content split-view">
+        <div class="split-left">
+            <h3>1. Materia Prima (Inventario Real)</h3>
+            <div class="form-group">
+                <input type="text" id="invName" placeholder="Nombre (Ej: Pan, Jamón)">
+                <input type="number" id="invQty" placeholder="Cantidad Actual">
+                <button class="action-btn" style="background:var(--dark); margin-top:5px" onclick="addInventoryItem()">Agregar / Actualizar Material</button>
+            </div>
+            <table id="inventoryTable">
+                <thead><tr><th>Material</th><th>Cant.</th><th>Acción</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="split-right">
+            <h3>2. Productos de Venta (Menú)</h3>
+            <p style="font-size:0.8rem; color:grey">Si vendes este producto, ¿qué material se descuenta?</p>
+            <div class="form-group">
+                <input type="text" id="prodName" placeholder="Nombre Producto (Ej: Sandwich)">
+                <input type="number" id="prodPrice" placeholder="Precio Venta (Q)">
+                <label>Receta (Descuenta 1 unidad de):</label>
+                <select id="prodRecipeSelect"><option value="">Ninguno</option></select>
+                <button class="action-btn" style="background:var(--primary); margin-top:5px" onclick="addProduct()">Guardar Producto</button>
+            </div>
+             <table id="productsTable">
+                <thead><tr><th>Producto</th><th>Precio</th><th>Receta</th><th>Borrar</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modalGastos" class="modal">
+    <div class="modal-header">
+        <span>Control de Gastos</span>
+        <button class="menu-btn" onclick="closeModal('modalGastos')">Volver</button>
+    </div>
+    <div class="modal-content split-view">
+        <div class="split-left">
+            <h3>Nuevo Gasto</h3>
+            <div class="form-group">
+                <input type="date" id="expenseDate">
+                <input type="text" id="expenseDesc" placeholder="Descripción">
+                <select id="expenseType">
+                    <option value="Insumos">Insumos</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Otro">Otro</option>
+                </select>
+                <input type="number" id="expenseAmount" placeholder="Monto (Q)">
+                <button class="action-btn" style="background:#c0392b" onclick="addExpense()">Registrar Gasto</button>
+            </div>
+        </div>
+        <div class="split-right">
+            <h3>Historial del Día</h3>
+            <div id="expensesList"></div>
+        </div>
+    </div>
+</div>
+
+<div id="modalFiado" class="modal">
+    <div class="modal-header">
+        <span>Control de Fiados</span>
+        <button class="menu-btn" onclick="closeModal('modalFiado')">Volver</button>
+    </div>
+    <div class="modal-content">
+        <h3>Cuentas Pendientes</h3>
+        <table id="creditTable">
+            <thead><tr><th>Fecha</th><th>Cliente</th><th>Monto</th><th>Acción</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modalHistorial" class="modal">
+    <div class="modal-header">
+        <span>Historial y Cierre</span>
+        <button class="menu-btn" onclick="closeModal('modalHistorial')">Volver</button>
+    </div>
+    <div class="modal-content">
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+            <button class="menu-btn" style="background:#333; color:white" onclick="closeDay()">Cerrar Día</button>
+            <button class="menu-btn" style="background:#27ae60; color:white" onclick="exportToExcel()">Exportar Excel Semanal</button>
+        </div>
+
+        <div class="split-view">
+            <div class="split-left">
+                <h3>Resumen de Hoy</h3>
+                <div id="todayStats" style="font-size:1.2rem; margin-bottom:20px"></div>
+                <h4>Ventas Recientes</h4>
+                <div id="salesHistoryList" style="max-height:300px; overflow-y:auto; border:1px solid #ccc;"></div>
+            </div>
+            
+            <div class="split-right" style="display:flex; flex-direction:column; justify-content:center;">
+                <h3>Gráfica Diaria</h3>
+                <div class="chart-container" id="dailyChart">
+                    <div class="bar-group">
+                        <div class="bar bar-green" id="barSales" style="height: 0%">Q0</div>
+                        <span>Venta</span>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar bar-red" id="barExpenses" style="height: 0%">Q0</div>
+                        <span>Gasto</span>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar bar-blue" id="barNet" style="height: 0%">Q0</div>
+                        <span>Neto</span>
+                    </div>
+                </div>
+                <div id="netIndicator" class="net-indicator"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ESTADO Y DATOS ---
+    let DB = {
+        products: [], // {id, name, price, recipeId}
+        inventory: [], // {id, name, qty}
+        sales: [], // {id, date, items:[], total, type: 'cash'|'credit', clientName}
+        expenses: [], // {id, date, desc, type, amount}
+        credits: [] // {id, date, clientName, total, items}
+    };
+
+    let cart = [];
+    
+    // Configuración Inicial
+    const todayStr = () => new Date().toLocaleDateString('es-GT'); // Formato local
+    
+    // --- PERSISTENCIA (LOCALSTORAGE) ---
+    function loadData() {
+        const saved = localStorage.getItem('antojableDB_v1');
+        if (saved) {
+            DB = JSON.parse(saved);
+        } else {
+            // Datos de prueba iniciales
+            seedData();
+        }
+        renderProducts();
+        updateInventorySelect();
+        updateExpensesList();
+    }
+
+    function saveData() {
+        localStorage.setItem('antojableDB_v1', JSON.stringify(DB));
+    }
+
+    function seedData() {
+        // Datos ejemplo si está vacío
+        DB.inventory = [{id: 1, name: 'Pan', qty: 20}, {id: 2, name: 'Salchicha', qty: 50}];
+        DB.products = [
+            {id: 1, name: 'Shuco Full', price: 15, recipeId: 1}, 
+            {id: 2, name: 'Mixta', price: 10, recipeId: 2}
+        ];
+    }
+
+    // --- POS & CARRITO ---
+    function renderProducts() {
+        const grid = document.getElementById('productsGrid');
+        grid.innerHTML = '';
+        DB.products.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <div class="prod-name">${p.name}</div>
+                <div class="prod-price">Q${p.price}</div>
+            `;
+            card.onclick = () => addToCart(p);
+            grid.appendChild(card);
+        });
+    }
+
+    function addToCart(product) {
+        cart.push({...product, cartId: Date.now()});
+        renderCart();
+    }
+
+    function removeFromCart(cartId) {
+        cart = cart.filter(item => item.cartId !== cartId);
+        renderCart();
+    }
+
+    function renderCart() {
+        const list = document.getElementById('cartList');
+        list.innerHTML = '';
+        let total = 0;
+        cart.forEach(item => {
+            total += parseFloat(item.price);
+            const row = document.createElement('div');
+            row.className = 'cart-item';
+            row.innerHTML = `
+                <span>${item.name}</span>
+                <div style="display:flex; align-items:center">
+                    <span>Q${item.price}</span>
+                    <button class="del-btn" onclick="removeFromCart(${item.cartId})">🗑️</button>
+                </div>
+            `;
+            list.appendChild(row);
+        });
+        
+        document.getElementById('totalAmount').innerText = `Q${total.toFixed(2)}`;
+        calcChange();
+    }
+
+    function calcChange() {
+        const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+        const payInput = document.getElementById('payInput').value;
+        const paid = parseFloat(payInput) || 0;
+        const btn = document.getElementById('btnPay');
+        const changeDisplay = document.getElementById('changeDisplay');
+
+        if (total > 0 && paid >= total) {
+            btn.classList.add('active');
+            changeDisplay.innerText = `Cambio: Q${(paid - total).toFixed(2)}`;
+            changeDisplay.style.color = 'var(--green)';
+        } else {
+            btn.classList.remove('active');
+            changeDisplay.innerText = total > 0 ? "Falta dinero" : "Carrito vacío";
+            changeDisplay.style.color = 'red';
+        }
+        return { total, paid };
+    }
+
+    function processPayment(type) {
+        const { total } = calcChange();
+        if (total === 0) return;
+
+        if (type === 'credit') {
+            const client = prompt("Nombre del Cliente (Fiado):");
+            if (!client) return;
+            
+            DB.credits.push({
+                id: Date.now(),
+                date: new Date().toISOString(), // Fecha técnica
+                displayDate: todayStr(),
+                clientName: client,
+                total: total,
+                items: [...cart]
+            });
+            alert(`Fiado registrado a ${client}`);
+            
+        } else {
+            // Venta Cash
+            // 1. Descontar Inventario
+            let inventoryWarnings = [];
+            cart.forEach(item => {
+                if (item.recipeId) {
+                    const material = DB.inventory.find(inv => inv.id == item.recipeId);
+                    if (material) {
+                        material.qty--;
+                        if (material.qty <= 0) inventoryWarnings.push(material.name);
+                    }
+                }
+            });
+            
+            if (inventoryWarnings.length > 0) alert("OJO: Se agotó: " + inventoryWarnings.join(", "));
+
+            // 2. Registrar Venta
+            DB.sales.push({
+                id: Date.now(),
+                date: new Date().toISOString(),
+                displayDate: todayStr(),
+                items: [...cart],
+                total: total,
+                type: 'cash'
+            });
+        }
+
+        saveData();
+        cart = [];
+        document.getElementById('payInput').value = '';
+        renderCart();
+        renderInventoryTable(); // Refresh inv if open
+        alert("¡Venta Exitosa!");
+    }
+
+    // --- FIADO ---
+    function renderCredits() {
+        const table = document.querySelector('#creditTable tbody');
+        table.innerHTML = '';
+        DB.credits.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${c.displayDate}</td>
+                <td>${c.clientName}</td>
+                <td>Q${c.total}</td>
+                <td><button class="menu-btn" style="background:var(--green); color:white; font-size:0.8rem" onclick="payCredit(${c.id})">Cobrar</button></td>
+            `;
+            table.appendChild(tr);
+        });
+    }
+
+    function payCredit(id) {
+        if(!confirm("¿El cliente está pagando esta cuenta hoy?")) return;
+        
+        const creditIndex = DB.credits.findIndex(c => c.id === id);
+        if (creditIndex === -1) return;
+        
+        const credit = DB.credits[creditIndex];
+        
+        // Convertir a Venta del día HOY
+        DB.sales.push({
+            id: Date.now(),
+            date: new Date().toISOString(), // Se registra hoy
+            displayDate: todayStr(),
+            items: credit.items,
+            total: credit.total,
+            type: 'cash-fiado-pagado',
+            originalDate: credit.displayDate
+        });
+        
+        // Quitar de fiados
+        DB.credits.splice(creditIndex, 1);
+        saveData();
+        renderCredits();
+        alert("Cobrado y registrado en ventas de HOY.");
+    }
+
+    // --- GASTOS ---
+    function addExpense() {
+        const date = document.getElementById('expenseDate').value || todayStr();
+        const desc = document.getElementById('expenseDesc').value;
+        const type = document.getElementById('expenseType').value;
+        const amount = parseFloat(document.getElementById('expenseAmount').value);
+
+        if (!desc || !amount) return alert("Faltan datos");
+
+        DB.expenses.push({
+            id: Date.now(),
+            dateStr: date, // YYYY-MM-DD input format usually
+            displayDate: todayStr(), // Simple track
+            desc, type, amount
+        });
+        
+        saveData();
+        updateExpensesList();
+        document.getElementById('expenseDesc').value = '';
+        document.getElementById('expenseAmount').value = '';
+        alert("Gasto Agregado");
+    }
+
+    function updateExpensesList() {
+        const list = document.getElementById('expensesList');
+        list.innerHTML = '';
+        // Filtrar solo hoy para la vista rápida
+        const todayExpenses = DB.expenses.filter(e => e.displayDate === todayStr());
+        
+        todayExpenses.forEach(e => {
+            const div = document.createElement('div');
+            div.style.borderBottom = "1px solid #ccc";
+            div.style.padding = "5px";
+            div.innerHTML = `<b>Q${e.amount}</b> - ${e.desc} <small>(${e.type})</small>`;
+            list.appendChild(div);
+        });
+    }
+
+    // --- INVENTARIO / RECETA ---
+    function addInventoryItem() {
+        const name = document.getElementById('invName').value;
+        const qty = parseInt(document.getElementById('invQty').value);
+        if (!name) return;
+        
+        const existing = DB.inventory.find(i => i.name === name);
+        if (existing) {
+            existing.qty = qty;
+        } else {
+            DB.inventory.push({ id: Date.now(), name, qty });
+        }
+        saveData();
+        renderInventoryTable();
+        updateInventorySelect();
+        document.getElementById('invName').value = '';
+    }
+
+    function addProduct() {
+        const name = document.getElementById('prodName').value;
+        const price = parseFloat(document.getElementById('prodPrice').value);
+        const recipeId = document.getElementById('prodRecipeSelect').value;
+        
+        if (!name || !price) return;
+        
+        DB.products.push({ id: Date.now(), name, price, recipeId });
+        saveData();
+        renderProductsTable();
+        renderProducts(); // Update POS
+        document.getElementById('prodName').value = '';
+        document.getElementById('prodPrice').value = '';
+    }
+    
+    function deleteProduct(id) {
+        if(!confirm("Borrar producto?")) return;
+        DB.products = DB.products.filter(p => p.id !== id);
+        saveData();
+        renderProductsTable();
+        renderProducts();
+    }
+
+    function renderInventoryTable() {
+        const tbody = document.querySelector('#inventoryTable tbody');
+        tbody.innerHTML = '';
+        DB.inventory.forEach(i => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${i.name}</td><td>${i.qty}</td><td><button onclick="deleteInv(${i.id})">X</button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderProductsTable() {
+        const tbody = document.querySelector('#productsTable tbody');
+        tbody.innerHTML = '';
+        DB.products.forEach(p => {
+            const recipeName = p.recipeId ? (DB.inventory.find(i=>i.id==p.recipeId)?.name || 'N/A') : 'Nada';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${p.name}</td><td>Q${p.price}</td><td>-1 ${recipeName}</td><td><button onclick="deleteProduct(${p.id})">X</button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateInventorySelect() {
+        const sel = document.getElementById('prodRecipeSelect');
+        sel.innerHTML = '<option value="">Ninguno</option>';
+        DB.inventory.forEach(i => {
+            const opt = document.createElement('option');
+            opt.value = i.id;
+            opt.innerText = i.name;
+            sel.appendChild(opt);
+        });
+    }
+    
+    function deleteInv(id) {
+         if(!confirm("Borrar Ingrediente?")) return;
+         DB.inventory = DB.inventory.filter(i => i.id !== id);
+         saveData();
+         renderInventoryTable();
+    }
+
+    // --- HISTORIAL & GRÁFICAS ---
+    function calcDailyStats() {
+        const today = todayStr();
+        const salesToday = DB.sales.filter(s => s.displayDate === today);
+        const expensesToday = DB.expenses.filter(e => e.displayDate === today);
+
+        const totalSales = salesToday.reduce((sum, s) => sum + s.total, 0);
+        const totalExpenses = expensesToday.reduce((sum, e) => sum + e.amount, 0);
+        const net = totalSales - totalExpenses;
+
+        // Render List
+        const list = document.getElementById('salesHistoryList');
+        list.innerHTML = '';
+        salesToday.forEach(s => {
+            const d = document.createElement('div');
+            d.style.padding = "5px"; d.style.borderBottom="1px solid #eee";
+            d.innerHTML = `Hora: ${new Date(s.date).toLocaleTimeString()} - <b>Q${s.total}</b> (${s.items.length} items)`;
+            list.appendChild(d);
+        });
+
+        document.getElementById('todayStats').innerHTML = `
+            Venta: Q${totalSales} | Gasto: Q${totalExpenses} | <b>Neto: Q${net}</b>
+        `;
+
+        // Logic for Colors and Arrows
+        // Simplified Logic: Green if flat (arbitrary range or positive), Blue if "Great" (> 500 example), Red if negative net
+        // User asked: Blue if sold MORE, Red if LESS (compared to what? Let's assume an arbitrary target of Q500 for now or just Net positive/negative)
+        
+        /* Lógica pedida:
+           VERDE: Flat (Estable)
+           AZUL: Vendió Más
+           ROJO: Vendió Menos
+           NETO: Flecha arriba (Verde/Positivo), Flecha abajo (Rojo/Negativo)
+        */
+
+        // Actualizar Gráfica Alturas (Max height 150px approx)
+        const maxVal = Math.max(totalSales, totalExpenses, 1); // Avoid div by 0
+        const hSales = (totalSales / maxVal) * 100;
+        const hExp = (totalExpenses / maxVal) * 100;
+        
+        const bSales = document.getElementById('barSales');
+        const bExp = document.getElementById('barExpenses');
+        
+        bSales.style.height = `${hSales}%`;
+        bSales.innerText = `Q${totalSales}`;
+        bExp.style.height = `${hExp}%`;
+        bExp.innerText = `Q${totalExpenses}`;
+
+        // Color Logic Sales Bar
+        // Compararemos con un promedio simple (hardcoded for demo, could be real average later)
+        const dailyTarget = 500; // Ejemplo meta
+        if (totalSales > dailyTarget) {
+            bSales.className = 'bar bar-blue'; // Más
+        } else if (totalSales < 100) {
+            bSales.className = 'bar bar-red'; // Menos (muy poco)
+        } else {
+            bSales.className = 'bar bar-green'; // Flat/Normal
+        }
+
+        // Net Arrow
+        const indicator = document.getElementById('netIndicator');
+        if (net >= 0) {
+            indicator.innerHTML = `<span class="arrow-up">⬆</span> Ganancia Q${net}`;
+        } else {
+            indicator.innerHTML = `<span class="arrow-down">⬇</span> Pérdida Q${net}`;
+        }
+    }
+
+    function closeDay() {
+        if(confirm("¿Seguro de cerrar el día? (Esto es simbólico, los datos quedan guardados)")) {
+            alert("Día cerrado correctamente. ¡Buen trabajo!");
+        }
+    }
+
+    function exportToExcel() {
+        // Simple CSV Export
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Fecha,Tipo,Descripcion,Monto\n";
+        
+        DB.sales.forEach(s => {
+            csvContent += `${s.displayDate},VENTA,Venta ID ${s.id},${s.total}\n`;
+        });
+        DB.expenses.forEach(e => {
+            csvContent += `${e.displayDate},GASTO,${e.type} - ${e.desc},-${e.amount}\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "reporte_semanal.csv");
+        document.body.appendChild(link);
+        link.click();
+    }
+
+    // --- NAVIGATION ---
+    function openMenu() { document.getElementById('modalMenu').style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    
+    function openSection(id) {
+        closeModal('modalMenu');
+        document.getElementById(id).style.display = 'flex';
+        // Refresh specific data
+        if(id === 'modalInventario') { renderInventoryTable(); renderProductsTable(); updateInventorySelect(); }
+        if(id === 'modalFiado') renderCredits();
+        if(id === 'modalHistorial') calcDailyStats();
+        if(id === 'modalGastos') updateExpensesList();
+    }
+
+    // --- INIT ---
+    document.getElementById('expenseDate').valueAsDate = new Date();
+    loadData();
+
+</script>
+</body>
+</html>
